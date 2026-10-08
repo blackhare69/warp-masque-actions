@@ -15,6 +15,7 @@ import { fetchWindscribe, fetchSession } from "./windscribe.js";
 import { renderUI, renderLogin, renderSetup, renderNoKV } from "./ui.js";
 import {
   safeEqual, makeCred, checkPassword, signToken, verifyToken,
+  signSubscriptionToken, verifySubscriptionToken,
   readCookie, rateLimit, clearRateLimit, normalizePath,
 } from "./auth.js";
 
@@ -216,7 +217,7 @@ export default {
     // ---- 订阅。客户端带不了 cookie，用 ?token= ----
     if (path === subPath) {
       const t = url.searchParams.get("token") || "";
-      if (!(await verifyToken(cred, t)) && !authed) return notFound();
+      if (!(await verifySubscriptionToken(cred, t)) && !authed) return notFound();
 
       const yaml = await ensureConfig(env);
       if (!yaml) {
@@ -325,7 +326,7 @@ export default {
     if (path === "/") {
       if (!authed) return html(renderLogin());
       const state = await env.KV.get(K_STATE, "json");
-      const token = await signToken(cred);
+      const token = await signSubscriptionToken(cred);
       const pushToken = await env.KV.get(K_PUSH);
       const protonCred = await env.KV.get(K_PROTON, "json");
       // 用量是实时问 Windscribe 的，问不到就不显示，不影响页面其他部分

@@ -1610,6 +1610,17 @@ async function verifyToken(cred, token) {
   if (!/^\d+$/.test(exp) || Number(exp) < Date.now()) return false;
   return safeEqual(sig, await hmac(cred.hash, exp));
 }
+var SUB_TOKEN_PURPOSE = "subscription-v1";
+async function signSubscriptionToken(cred) {
+  if (!cred || !cred.hash) return "";
+  return hmac(cred.hash, SUB_TOKEN_PURPOSE);
+}
+async function verifySubscriptionToken(cred, token) {
+  if (!cred || !cred.hash || !token) return false;
+  const stable = await signSubscriptionToken(cred);
+  if (safeEqual(token, stable)) return true;
+  return verifyToken(cred, token);
+}
 function readCookie(req, name) {
   const raw = req.headers.get("cookie") || "";
   for (const part of raw.split(";")) {
@@ -1778,7 +1789,7 @@ var index_default = {
     const subPath = "/" + settings.subPath;
     if (path === subPath) {
       const t = url.searchParams.get("token") || "";
-      if (!await verifyToken(cred, t) && !authed) return notFound();
+      if (!await verifySubscriptionToken(cred, t) && !authed) return notFound();
       const yaml = await ensureConfig(env);
       if (!yaml) {
         return new Response(
@@ -1873,7 +1884,7 @@ var index_default = {
     if (path === "/") {
       if (!authed) return html(renderLogin());
       const state = await env.KV.get(K_STATE, "json");
-      const token = await signToken(cred);
+      const token = await signSubscriptionToken(cred);
       const pushToken = await env.KV.get(K_PUSH);
       const protonCred = await env.KV.get(K_PROTON, "json");
       let windUsage = null;

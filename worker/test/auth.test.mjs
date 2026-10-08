@@ -1,6 +1,7 @@
 // 鉴权底层测试。跑: node test/auth.test.mjs
 import {
   safeEqual, makeCred, checkPassword, signToken, verifyToken,
+  signSubscriptionToken, verifySubscriptionToken,
   rateLimit, clearRateLimit, normalizePath,
 } from "../src/auth.js";
 
@@ -28,8 +29,19 @@ t("过期 token 不通过", !(await verifyToken(cred, "1000000000000.abc")));
 t("空 token 不通过", !(await verifyToken(cred, "")));
 t("无点号不通过", !(await verifyToken(cred, "garbage")));
 
+const stable = await signSubscriptionToken(cred);
+t("订阅 token 签发成功", !!stable && !stable.includes("."));
+t("订阅 token 可重复签发且保持不变",
+  stable === await signSubscriptionToken(cred));
+t("稳定订阅 token 通过", await verifySubscriptionToken(cred, stable));
+t("旧格式订阅 token 兼容", await verifySubscriptionToken(cred, tok));
+t("稳定订阅 token 篡改不通过",
+  !(await verifySubscriptionToken(cred, stable.slice(0, -2) + "xy")));
+
 const cred2 = await makeCred("new-password-here");
 t("改密码后旧 token 失效", !(await verifyToken(cred2, tok)));
+t("改密码后稳定订阅 token 失效",
+  !(await verifySubscriptionToken(cred2, stable)));
 
 t("路径: 正常值", normalizePath("a8f3d91c") === "a8f3d91c");
 t("路径: 去掉斜杠", normalizePath("/my-sub/") === "my-sub");

@@ -73,6 +73,24 @@ export async function verifyToken(cred, token) {
   return safeEqual(sig, await hmac(cred.hash, exp));
 }
 
+// 订阅链接使用稳定的 bearer token：只要密码不变，链接就不变。
+// token 由密码哈希派生，不另存明文；改密码会同时让稳定链接和旧的
+// 7 天 token 失效。订阅链接本身等同访问凭证，请勿公开分享。
+const SUB_TOKEN_PURPOSE = "subscription-v1";
+
+export async function signSubscriptionToken(cred) {
+  if (!cred || !cred.hash) return "";
+  return hmac(cred.hash, SUB_TOKEN_PURPOSE);
+}
+
+export async function verifySubscriptionToken(cred, token) {
+  if (!cred || !cred.hash || !token) return false;
+  const stable = await signSubscriptionToken(cred);
+  if (safeEqual(token, stable)) return true;
+  // 保留旧格式的 7 天 token，便于部署后已有客户端平滑过渡。
+  return verifyToken(cred, token);
+}
+
 export function readCookie(req, name) {
   const raw = req.headers.get("cookie") || "";
   for (const part of raw.split(";")) {

@@ -90,6 +90,9 @@ kv.set("config:yaml", "# fake\nproxies: []");
 const home = await (await worker.fetch(req("/", { headers: auth }), env)).text();
 const tok = (home.match(/token=([\w.\-]+)/) || [])[1];
 t("状态页给出带 token 的订阅链接", !!tok);
+const homeAgain = await (await worker.fetch(req("/", { headers: auth }), env)).text();
+const tokAgain = (homeAgain.match(/token=([\w.\-]+)/) || [])[1];
+t("重复打开状态页订阅链接保持不变", tokAgain === tok);
 
 const sub = await worker.fetch(req(`/sub?token=${tok}`), env);
 t("默认路径 /sub 带 token 可取", sub.status === 200);
