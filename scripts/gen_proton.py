@@ -17,6 +17,9 @@ WANT = {"JP": "日本", "SG": "新加坡", "US": "美国", "NL": "荷兰",
         "NO": "挪威", "MX": "墨西哥"}
 PER_COUNTRY = 3     # 每国取几台
 
+# Proton rejects obsolete client identifiers during authentication.
+APP_VERSION = "4.19.1"
+
 
 def ed25519_to_wg(raw_sk: bytes) -> str:
     """Proton 的 wg 私钥是从 Ed25519 私钥推的：SHA512 前 32 字节 + clamp。"""
@@ -29,8 +32,8 @@ def ed25519_to_wg(raw_sk: bytes) -> str:
 
 async def main():
     outdir = sys.argv[1] if len(sys.argv) > 1 else "dist"
-    s = Session(appversion="linux-vpn@4.18.1",
-                user_agent="ProtonVPN/4.18.1 (Linux; Ubuntu/24.04)")
+    s = Session(appversion=f"linux-vpn@{APP_VERSION}",
+                user_agent=f"ProtonVPN/{APP_VERSION} (Linux; Ubuntu/24.04)")
 
     if not await s.async_authenticate(os.environ["PROTON_USER"],
                                       os.environ["PROTON_PASS"]):
